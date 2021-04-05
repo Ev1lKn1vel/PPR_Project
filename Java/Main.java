@@ -11,7 +11,7 @@ public class Main {
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
 
-        String password = "ZZZZZ";
+        String password = "ZZZ";
 
         MessageDigest digest = MessageDigest.getInstance(HASHTYPE);
         byte[] hashedPassword = digest.digest(password.getBytes());
@@ -19,8 +19,8 @@ public class Main {
         long start = System.currentTimeMillis();
 //        String guessedPW = guessPasswordSerial(hashedPassword);
 //        String guessedPW = guessPasswordParallel_fixedLength(hashedPassword);
-//        String guessedPW = guessPasswordParellel(hashedPassword, 5, "");
-        String guessedPW = guessPasswordSerial(hashedPassword, password.length(), "");
+        String guessedPW = guessPasswordParellel(hashedPassword, 5, "");
+//        String guessedPW = guessPasswordSerial(hashedPassword, password.length(), "");
 
         long end = System.currentTimeMillis();
         System.out.println("total Time: " + (end - start) + "ms and password is " + guessedPW);
@@ -93,7 +93,7 @@ public class Main {
                 .collect(Collectors.joining());
     }
 
-    public static String guessPasswordParellel(byte[] hashedPassword, int maxLength, String guessedPw) {
+    public static String guessPasswordParellel_fixedLength(byte[] hashedPassword, int maxLength, String guessedPw) {
 
         return charArray.chars().parallel().mapToObj(item -> recursiveLoop(maxLength - 1, (char) item + "", hashedPassword))
                 .filter(item -> item != null && !item.isBlank())
@@ -101,7 +101,7 @@ public class Main {
     }
 
 
-    private static String recursiveLoop(int maxLength, String guessedPw, byte[] hashedPassword) {
+    private static String recursiveLoop_fixedLength(int maxLength, String guessedPw, byte[] hashedPassword) {
         if (maxLength == 0) {
             try {
                 MessageDigest digestInside = MessageDigest.getInstance(HASHTYPE);
@@ -121,7 +121,39 @@ public class Main {
                 }
             }
         }
-        return "";
+        return null;
+    }
+
+    public static String guessPasswordParellel(byte[] hashedPassword, int maxLength, String guessedPw) {
+
+        return charArray.chars().parallel().mapToObj(item -> recursiveLoop(maxLength - 1, (char) item + "", hashedPassword))
+                .filter(item -> item != null && !item.isBlank())
+                .collect(Collectors.joining());
+    }
+
+
+    private static String recursiveLoop(int maxLength, String guessedPw, byte[] hashedPassword) {
+
+        try {
+            MessageDigest digestInside = MessageDigest.getInstance(HASHTYPE);
+            byte[] possibleSolution = digestInside.digest(guessedPw.getBytes());
+            if (Arrays.equals(hashedPassword, possibleSolution)) {
+                return guessedPw;
+            }
+
+        } catch (Exception e) {
+            return null;
+        }
+        if (maxLength > 0) {
+
+            for (char c : charList) {
+                String tmp = recursiveLoop(maxLength - 1, guessedPw + c, hashedPassword);
+                if (tmp != null && !tmp.isBlank()) {
+                    return tmp;
+                }
+            }
+        }
+        return null;
     }
 
 
