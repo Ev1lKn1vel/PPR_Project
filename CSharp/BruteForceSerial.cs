@@ -4,20 +4,22 @@ using System.Text;
 
 namespace ParallelPasswordCracker
 {
-    class BruteForceSequential
+    class BruteForceSerial
     {
         private readonly char[] alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
+        //private readonly char[] alphabet = "abcdefghijklmnopqrstuvwxyz".ToCharArray();
 
         private bool _found = false;
         private string _foundPassword = string.Empty;
 
         private string _hashToFind;
-        private HashType _hashType;
 
-        public BruteForceSequential(string hashToFind, HashType hashType)
+        private PasswordHasher _hasher;
+
+        public BruteForceSerial(string hashToFind, HashType hashType)
         {
             _hashToFind = hashToFind;
-            _hashType = hashType;
+            _hasher = new PasswordHasher(hashType);
         }
 
         public string CrackFixedLength(int length)
@@ -67,7 +69,7 @@ namespace ParallelPasswordCracker
 
                 //Console.WriteLine(appended);
 
-                if (appended.VerifyHash(_hashToFind, _hashType))
+                if (_hasher.VerifyHash(appended, _hashToFind))
                 {
                     _foundPassword = appended;
                     _found = true;

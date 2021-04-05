@@ -7,17 +7,20 @@ namespace ParallelPasswordCracker
     {
         static void Main(string[] args)
         {
-            var secret = "zzzzz";
+            var secret = "A";
             var hashType = HashType.SHA1;
             var passwordLengthToCrack = secret.Length;
 
-            var hashToFind = secret.Hash(hashType);
+            PasswordHasher hasher = new PasswordHasher(HashType.SHA1);
+            var hashToFind = hasher.Hash(secret);
 
-            BruteForceSequential bruteForceSequential = new BruteForceSequential(hashToFind, hashType);
+            BruteForceSerial bruteForceSequential = new BruteForceSerial(hashToFind, hashType);
+            //BruteForceParallel bruteForceParallel = new BruteForceParallel(hashToFind, hashType);
 
             Stopwatch sW = new Stopwatch();
             sW.Start();
             var result = bruteForceSequential.CrackFixedLength(passwordLengthToCrack);
+            //var result = bruteForceParallel.CrackFixedLength(passwordLengthToCrack);
             sW.Stop();
 
             if (result != null)
