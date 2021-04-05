@@ -27,7 +27,7 @@ public class Main {
         String password = "ZZZZ";
 
         byte[] hashedPassword = digest.digest(password.getBytes());
-        int maxLength = 5;
+        int maxLength = 4;
 //        benchMarkSerial(hashedPassword, maxLength);
 //        benchMarkParallelExecutor(hashedPassword, maxLength);
         benchMarkParallelStream(hashedPassword, maxLength);
