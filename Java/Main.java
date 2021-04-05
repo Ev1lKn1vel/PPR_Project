@@ -7,52 +7,82 @@ public class Main {
 
     public static char[] charList = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private static String HASHTYPE = "SHA-1";
+    private static final String charArray = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
-        String charArray = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-        String password = "ZZZZ";
+        String password = "ZZZZZ";
 
         MessageDigest digest = MessageDigest.getInstance(HASHTYPE);
         byte[] hashedPassword = digest.digest(password.getBytes());
-//        boolean pwFound = false;
 
-        int[] chars = new int[charList.length];
-        for (int i = 0; i < chars.length; i++) {
-            chars[i] = Character.getNumericValue(charList[i]);
-        }
         long start = System.currentTimeMillis();
+//        String guessedPW = guessPasswordSerial(hashedPassword);
+//        String guessedPW = guessPasswordParallel_fixedLength(hashedPassword);
+//        String guessedPW = guessPasswordParellel(hashedPassword, 5, "");
+        String guessedPW = guessPasswordSerial(hashedPassword, password.length(), "");
 
-//        for(int first = 0; first < charList.length && !pwFound; first++){
-//            for(int second = 0; second < charList.length && !pwFound; second++){
-//                for(int third = 0; third < charList.length && !pwFound; third++){
-//                    for(int fourth = 0; fourth < charList.length && !pwFound; fourth++){
-//                        String possiblePW = "" + charList[first] + charList[second] + charList[third] + charList[fourth];
-//                        byte[] possibleSolution = digest.digest(possiblePW.getBytes());
-//                        if(hashedPassword.equals(possibleSolution)){
-//                            pwFound = true;
-//                        }
-//                    }
-//                }
-//            }
-//        }
+        long end = System.currentTimeMillis();
+        System.out.println("total Time: " + (end - start) + "ms and password is " + guessedPW);
 
-        String guessedPW = charArray.chars().parallel().mapToObj(first -> {
+    }
 
+    public static String guessPasswordSerial_fixedLength(byte[] hashedPassword) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance(HASHTYPE);
+
+        for (char first : charList) {
             for (char second : charList) {
                 for (char third : charList) {
                     for (char fourth : charList) {
-                        String possiblePW = "" + (char)first + second + third + fourth;
+                        String possiblePW = "" + first + second + third + fourth;
+                        byte[] possibleSolution = digest.digest(possiblePW.getBytes());
+                        if (Arrays.equals(hashedPassword, possibleSolution)) {
+                            return possiblePW;
+                        }
+                    }
+                }
+            }
+        }
+        return "Password not found";
+    }
 
-                        try{
+    public static String guessPasswordSerial(byte[] hashedPassword, int maxLength, String guessedPw) throws NoSuchAlgorithmException {
+        //in most inner loop
+        if (maxLength == 0) {
+            MessageDigest digest = MessageDigest.getInstance(HASHTYPE);
+            byte[] possibleSolution = digest.digest(guessedPw.getBytes());
+            if (Arrays.equals(hashedPassword, possibleSolution)) {
+                return guessedPw;
+            }
+        } else {
+            for (char c : charList) {
+                String tmp = guessPasswordSerial(hashedPassword, maxLength - 1, guessedPw + c);
+                if (tmp != null && !tmp.isBlank()) {
+                    return tmp;
+                }
+            }
+        }
+
+
+        return "";
+    }
+
+    public static String guessPasswordParallel_fixedLength(byte[] hashedPassword) {
+        return charArray.chars().parallel().mapToObj(first -> {
+            for (char second : charList) {
+                for (char third : charList) {
+                    for (char fourth : charList) {
+                        String possiblePW = "" + (char) first + second + third + fourth;
+
+                        try {
                             MessageDigest digestInsied = MessageDigest.getInstance(HASHTYPE);
                             byte[] possibleSolution = digestInsied.digest(possiblePW.getBytes());
                             if (Arrays.equals(hashedPassword, possibleSolution)) {
                                 return possiblePW;
                             }
 
-                        }catch(Exception e){
-                            return "EXCEPTION";
+                        } catch (Exception e) {
+                            return "";
                         }
                     }
                 }
@@ -61,32 +91,38 @@ public class Main {
         })
                 .filter(item -> item != null && !item.isEmpty())
                 .collect(Collectors.joining());
-
-        long end = System.currentTimeMillis();
-        System.out.println("total Time: " + (end - start) + "ms and password is " + guessedPW);
-
     }
+
+    public static String guessPasswordParellel(byte[] hashedPassword, int maxLength, String guessedPw) {
+
+        return charArray.chars().parallel().mapToObj(item -> recursiveLoop(maxLength - 1, (char) item + "", hashedPassword))
+                .filter(item -> item != null && !item.isBlank())
+                .collect(Collectors.joining());
+    }
+
+
+    private static String recursiveLoop(int maxLength, String guessedPw, byte[] hashedPassword) {
+        if (maxLength == 0) {
+            try {
+                MessageDigest digestInside = MessageDigest.getInstance(HASHTYPE);
+                byte[] possibleSolution = digestInside.digest(guessedPw.getBytes());
+                if (Arrays.equals(hashedPassword, possibleSolution)) {
+                    return guessedPw;
+                }
+
+            } catch (Exception e) {
+                return null;
+            }
+        } else {
+            for (char c : charList) {
+                String tmp = recursiveLoop(maxLength - 1, guessedPw + c, hashedPassword);
+                if (tmp != null && !tmp.isBlank()) {
+                    return tmp;
+                }
+            }
+        }
+        return "";
+    }
+
+
 }
-
-
-
-
-
-//WORKING SOLUTION
-//String guessedPW = charArray.chars().parallel().mapToObj(first -> {
-//
-//    for (char second : charList) {
-//        for (char third : charList) {
-//            for (char fourth : charList) {
-//                String possiblePW = "" + (char)first + second + third + fourth;
-//                //byte[] possibleSolution = digest.digest(possiblePW.getBytes());
-//                if (password.equals(possiblePW)) {
-//                    return possiblePW;
-//                }
-//            }
-//        }
-//    }
-//    return "";
-//})
-//        .filter(item -> item != null && !item.isEmpty())
-//        .collect(Collectors.joining());
