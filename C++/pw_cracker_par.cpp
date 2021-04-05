@@ -1,3 +1,6 @@
+/* Implements a parallel password cracker for passwords of the exact length of
+4 characters */
+
 #include <stdio.h>
 #include <iostream>
 #include <chrono>

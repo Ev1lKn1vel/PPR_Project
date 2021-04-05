@@ -1,14 +1,14 @@
-/* Implements a sequential password cracker for passwords of the exact length of
+/* Implements a parallel password cracker for passwords of variable length up to
 4 characters */
 
 #include <stdio.h>
 #include <iostream>
 #include <chrono>
 #include "sha1.h"
+#include <omp.h>
 #include <cstring>
 
 #define FULLALPHABET 52
-
 using namespace std;
 
 void printArray(unsigned char* array){
@@ -25,6 +25,13 @@ bool hashCompare(unsigned char* pword, string secret){
   string string_pword = hex_pword;
   if(string_pword == secret) return true;
   return false;
+}
+
+void signalSuccess(unsigned char* res, auto start){
+  auto stop = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
+  cout << duration.count() << endl;
+  printArray(res);
 }
 
 int main( int argc, char* argv[]) {
@@ -46,30 +53,24 @@ sha1::toHexString(hashSecret, hexSecret);
 string stringSecret = hexSecret;
 
 auto start = chrono::high_resolution_clock::now();
-for(int i = 0; i < 52; i++){
-  // already set up for parallel (each for loop iteration gets its own candidate)
-  unsigned char candidate[5];
-  candidate[4] = '\0';
-  candidate[0] = alphabet[i];
+#pragma omp parallel for num_threads(6)
+for(int i = 0; i < FULLALPHABET; i++){
+  unsigned char c1[2] = {alphabet[i], '\0'};
+  if(hashCompare(c1, stringSecret)) signalSuccess(c1, start);
   for(int i = 0; i < FULLALPHABET; i++){
-    candidate[1] = alphabet[i];
+    unsigned char c2[3] = {c1[0], alphabet[i], '\0'};
+    if(hashCompare(c2, stringSecret)) signalSuccess(c2, start);
     for(int i = 0; i < FULLALPHABET; i++){
-      candidate[2] = alphabet[i];
+      unsigned char c3[4] = {c2[0], c2[1], alphabet[i], '\0'};
+      if(hashCompare(c3, stringSecret)) signalSuccess(c3, start);
       for(int i = 0; i < FULLALPHABET; i++){
-        candidate[3] = alphabet[i];
-        if(hashCompare(candidate, stringSecret)){
-          printArray(candidate);
-          // goto won't work for parallel implementation
-          goto found;
-        }
+        unsigned char c4[5] = {c3[0], c3[1], c3[2], alphabet[i], '\0'};
+        if(hashCompare(c4, stringSecret)) signalSuccess(c4, start);
       }
     }
   }
 }
 
-found:
-auto stop = chrono::high_resolution_clock::now();
-auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
-cout << duration.count() << endl;
+return 0;
 
 }
