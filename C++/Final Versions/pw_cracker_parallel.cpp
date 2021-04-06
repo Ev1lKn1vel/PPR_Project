@@ -43,7 +43,7 @@ bool hashCompare(unsigned char* pword, string secret){
   return false;
 }
 
-void bruteForceCrack(int startIndex, unsigned char* candidate, int maxLength, int digit){
+void bruteForceCrack(int startIndex, int endIndex, unsigned char* candidate, int maxLength, int digit){
   unsigned char newCandidate[digit+2];
   newCandidate[digit+1] = '\0';
   for(int c = 0; c < digit+1; c++) newCandidate[c] = candidate[c];
@@ -51,10 +51,10 @@ void bruteForceCrack(int startIndex, unsigned char* candidate, int maxLength, in
   // int loopStop = FULLALPHABET;
   // if(digit == 0) loopStop = startIndex;
   // for(int i = startIndex; i <= loopStop; i++){
-  for(int i = startIndex; i < FULLALPHABET; i++){
+  for(int i = startIndex; i < endIndex; i++){
     newCandidate[digit] = alphabet[i];
     if(digit < maxLength-1){
-      bruteForceCrack(0, newCandidate, maxLength, (digit+1));
+      bruteForceCrack(0, FULLALPHABET, newCandidate, maxLength, (digit+1));
     }
     if (found) return;
     if(hashCompare(newCandidate, stringSecret)){
@@ -79,9 +79,28 @@ candidate[0] = '\0';
 
 auto start = chrono::high_resolution_clock::now();
 #pragma omp parallel for num_threads(T_NUM)
+
+// --- every letter gets its own thread ---
 // for(int i = 0; i < FULLALPHABET; i++) {
-//   bruteForceCrack(i, candidate, MAXLENGTH, STARTDIGIT);}
-for(int i = 0; i < FULLALPHABET; i += FULLALPHABET / T_NUM) bruteForceCrack(i, candidate, MAXLENGTH, STARTDIGIT);
+//   bruteForceCrack(i, (i+1), candidate, MAXLENGTH, STARTDIGIT);
+// }
+
+// --- start chunking from the end of the alphabet ---
+for(int i = FULLALPHABET; i > 0; i -= FULLALPHABET / T_NUM){
+  cout << i << endl;
+  int startIndex = i - FULLALPHABET / T_NUM;
+  if (startIndex < 0) startIndex = 0;
+  bruteForceCrack(startIndex, i, candidate, MAXLENGTH, STARTDIGIT);
+}
+
+// --- start chunking from start of the alphabet ---
+// for(int i = 0; i < FULLALPHABET; i += FULLALPHABET / T_NUM) {
+//   cout << i << endl;
+//   int endIndex = i + FULLALPHABET / T_NUM;
+//   if(endIndex > FULLALPHABET) endIndex = FULLALPHABET;
+//   bruteForceCrack(i, endIndex, candidate, MAXLENGTH, STARTDIGIT);
+// }
+
 auto stop = chrono::high_resolution_clock::now();
 auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
 cout << duration.count() << endl;
