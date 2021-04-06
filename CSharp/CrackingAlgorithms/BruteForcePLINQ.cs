@@ -29,7 +29,7 @@ namespace ParallelPasswordCracker
             {
                 using (var hasher = new PasswordHasher(hashType))
                 {
-                    Console.WriteLine(letter);
+                    //Console.WriteLine(letter);
                     Generate(letter + "", hashToFind, hasher, maxLength - 1);
                 }
             });

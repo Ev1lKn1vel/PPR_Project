@@ -10,7 +10,7 @@ namespace ParallelPasswordCracker
         private readonly char[] alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
 
         private string _foundPassword; // No lock needed since only one thread can have correct password
-        private bool _found; // Race condition doesn't matter. Worst case a few more iterations are done
+        private volatile bool _found; // Race condition doesn't matter. Worst case a few more iterations are done
 
         private const int MaxTasks = 8;
 
