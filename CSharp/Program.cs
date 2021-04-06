@@ -19,6 +19,7 @@ namespace ParallelPasswordCracker
 
         // Benchmark constants
         private const int IterationsPerAlgorithm = 10;
+        private const int DiscardIterationAmount = 3;
         private const string DiscardSecret = "ZZZZ";
         private static byte[] discardHashToFind;
 
@@ -95,7 +96,7 @@ namespace ParallelPasswordCracker
 
             // Discard first batch (warmup)
             Console.Write("Initializing");
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < DiscardIterationAmount; i++)
             {
                 crackingAlgorithm.Crack(discardHashToFind, DiscardSecret.Length);
                 Console.Write(".");
