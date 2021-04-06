@@ -1,26 +1,45 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
+/* Author
+Name: Tim Paulus
+Username: se20m031
+Matrikelnummer: 01527558
+*/
 namespace ParallelPasswordCracker
 {
     class Program
     {
+        private const string Secret = "ZZZZ";
+        private static readonly int PasswordLengthToCrack = Secret.Length;
+        private static readonly HashType HashType = HashType.SHA1;
+
+        private static string hashToFind = string.Empty;
+
+        // Benchmark constants
+        private const int IterationsPerAlgorithm = 10;
+        private const string DiscardSecret = "ZZZ";
+        private static string discardHashToFind = string.Empty;
+
         static void Main(string[] args)
         {
-            var secret = "A";
-            var hashType = HashType.SHA1;
-            var passwordLengthToCrack = secret.Length;
+            using var hasher = new PasswordHasher(HashType);
+            hashToFind = hasher.Hash(Secret);
 
-            PasswordHasher hasher = new PasswordHasher(HashType.SHA1);
-            var hashToFind = hasher.Hash(secret);
+            //ManualTesting();
 
-            BruteForceSerial bruteForceSequential = new BruteForceSerial(hashToFind, hashType);
-            //BruteForceParallel bruteForceParallel = new BruteForceParallel(hashToFind, hashType);
+            Benchmark();
 
+            Console.ReadLine();
+        }
+
+        public static void ManualTesting()
+        {
+            Console.WriteLine("Starting...");
             Stopwatch sW = new Stopwatch();
             sW.Start();
-            var result = bruteForceSequential.CrackFixedLength(passwordLengthToCrack);
-            //var result = bruteForceParallel.CrackFixedLength(passwordLengthToCrack);
+            var result = new BruteForceParallelFor().Crack(hashToFind, PasswordLengthToCrack);
             sW.Stop();
 
             if (result != null)
@@ -33,8 +52,74 @@ namespace ParallelPasswordCracker
             }
 
             Console.WriteLine($"Duration: {sW.ElapsedMilliseconds} ms");
+        }
 
-            Console.ReadLine();
+        private static void Benchmark()
+        {
+            Console.WriteLine("\n----- STARTING BENCHMARK -----");
+
+            using var hasher = new PasswordHasher(HashType);
+            discardHashToFind = hasher.Hash(Secret);
+
+            var crackingAlgorithms = new List<CrackingAlgorithm>()
+            {
+                new BruteForceParallelCustom(),
+                new BruteForceParallelFor(),
+                new BruteForcePLINQ(),
+                new BruteForceSequential(),
+            };
+
+            // Benchmark every algorithm
+            var results = new Dictionary<string, float>();
+            foreach (var crackingAlgorithm in crackingAlgorithms)
+            {
+                var averageRuntime = BenchmarkSingle(crackingAlgorithm);
+                results.Add(crackingAlgorithm.Name, averageRuntime);
+            }
+
+            // Print end results
+            Console.WriteLine($"----- Results (over {IterationsPerAlgorithm} iterations) -----");
+            foreach (var result in results)
+            {
+                Console.WriteLine($"{result.Key}: {result.Value} ms");
+            }
+        }
+
+        private static float BenchmarkSingle(CrackingAlgorithm crackingAlgorithm)
+        {
+            Console.WriteLine($"Starting benchmark for {crackingAlgorithm.Name}");
+
+            // Discard first batch (warmup)
+            Console.Write("Initializing");
+            for (int i = 0; i < 5; i++)
+            {
+                crackingAlgorithm.Crack(discardHashToFind, DiscardSecret.Length);
+                Console.Write(".");
+                GC.Collect();
+            }
+            Console.WriteLine("\n");
+
+            Stopwatch sw = new Stopwatch();
+
+            long milliseconds = 0;
+            for (int i = 0; i < IterationsPerAlgorithm; i++)
+            {
+                Console.Write($"({i + 1}/{IterationsPerAlgorithm})");
+
+                sw.Restart();
+                var result = crackingAlgorithm.Crack(hashToFind, PasswordLengthToCrack, HashType);
+                sw.Stop();
+
+                milliseconds += sw.ElapsedMilliseconds;
+
+                var resultString = result != null ? $"SUCCESS ({result})" : "FAILED";
+                Console.WriteLine($" {resultString} in {sw.ElapsedMilliseconds} ms");
+            }
+            float averageRuntime = milliseconds / IterationsPerAlgorithm;
+
+            Console.WriteLine($"{crackingAlgorithm.Name}: {averageRuntime} ms (average)\n");
+
+            return averageRuntime;
         }
     }
 }

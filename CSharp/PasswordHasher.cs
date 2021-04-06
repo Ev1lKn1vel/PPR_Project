@@ -10,13 +10,18 @@ namespace ParallelPasswordCracker
         SHA256
     }
 
-    public class PasswordHasher
+    public class PasswordHasher : IDisposable
     {
         private HashAlgorithm _hashAlgorithm;
 
         public PasswordHasher(HashType hashType)
         {
             _hashAlgorithm = hashType == HashType.SHA1 ? SHA1.Create() : SHA256.Create();
+        }
+
+        public void Dispose()
+        {
+            _hashAlgorithm.Dispose();
         }
 
         public string Hash(string source)
