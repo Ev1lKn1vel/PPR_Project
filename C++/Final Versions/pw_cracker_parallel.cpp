@@ -10,9 +10,13 @@
 #include <vector>
 
 #define FULLALPHABET 52
-#define T_NUM 6
+#define T_NUM 12
 #define STARTDIGIT 0
 #define MAXLENGTH 4
+
+// Benchmark
+#define BENCHMARK_MAX_ITERATIONS 10
+#define BENCHMARK_DISCARD_AMOUNT 3
 
 using namespace std;
 
@@ -24,7 +28,7 @@ unsigned char alphabet[52] = {'a', 'A', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 
 'o', 'O', 'p', 'P', 'q', 'Q', 'r', 'R', 's', 'S', 't', 'T', 'u', 'U', 'v', 'V',
 'w', 'W', 'x', 'X', 'y', 'Y', 'z', 'Z'};
 
-string stringSecret;
+unsigned char hashSecret[20];
 bool found = false;
 
 void printArray(unsigned char* array){
@@ -32,15 +36,11 @@ void printArray(unsigned char* array){
   cout << endl;
 }
 
-bool hashCompare(unsigned char* pword, string secret){
-  unsigned char hashPword[20];
-  char hexPword[41];
-  int arrLength = strlen((char*)pword);
-  sha1::calc(pword, arrLength, hashPword);
-  sha1::toHexString(hashPword, hexPword);
-  string stringPword = hexPword;
-  if(stringPword == secret) return true;
-  return false;
+bool hashCompare(unsigned char* pword, unsigned char* secret) {
+    unsigned char hashPword[20];
+    int arrLength = strlen((char*)pword);
+    sha1::calc(pword, arrLength, hashPword);
+    return memcmp(hashPword, hashSecret, 20) == 0;
 }
 
 void bruteForceCrack(int startIndex, int endIndex, unsigned char* candidate, int maxLength, int digit){
@@ -57,51 +57,73 @@ void bruteForceCrack(int startIndex, int endIndex, unsigned char* candidate, int
       bruteForceCrack(0, FULLALPHABET, newCandidate, maxLength, (digit+1));
     }
     if (found) return;
-    if(hashCompare(newCandidate, stringSecret)){
+    if(hashCompare(newCandidate, hashSecret)){
       found = true;
       printArray(newCandidate);
     }
   }
 }
 
-int main( int argc, char* argv[]) {
+long parallel() {
+	// set up secret to crack
+    unsigned char secret[4] = {'Z', 'Z', 'Z', 'Z'};
+    char hexSecret[41];
+    sha1::calc(secret, 4, hashSecret);
+    found = false;
 
-// set up secret to crack
-unsigned char secret[4] = {'Z', 'Z', 'Z', 'Z'};
-unsigned char hashSecret[20];
-char hexSecret[41];
-sha1::calc(secret, 4, hashSecret);
-sha1::toHexString(hashSecret, hexSecret);
-stringSecret = hexSecret;
+    unsigned char candidate[1];
+    candidate[0] = '\0';
 
-unsigned char candidate[1];
-candidate[0] = '\0';
+    auto start = chrono::high_resolution_clock::now();
+    #pragma omp parallel for num_threads(T_NUM)
 
-auto start = chrono::high_resolution_clock::now();
-#pragma omp parallel for num_threads(T_NUM)
+    // --- every letter gets its own thread ---
+    // for(int i = 0; i < FULLALPHABET; i++) {
+    //   bruteForceCrack(i, (i+1), candidate, MAXLENGTH, STARTDIGIT);
+    // }
 
-// --- every letter gets its own thread ---
-// for(int i = 0; i < FULLALPHABET; i++) {
-//   bruteForceCrack(i, (i+1), candidate, MAXLENGTH, STARTDIGIT);
-// }
+    // --- start chunking from the end of the alphabet ---
+    for(int i = FULLALPHABET; i > 0; i -= FULLALPHABET / T_NUM){
+      //cout << i << endl;
+      int startIndex = i - FULLALPHABET / T_NUM;
+      if (startIndex < 0) startIndex = 0;
+      bruteForceCrack(startIndex, i, candidate, MAXLENGTH, STARTDIGIT);
+    }
 
-// --- start chunking from the end of the alphabet ---
-for(int i = FULLALPHABET; i > 0; i -= FULLALPHABET / T_NUM){
-  cout << i << endl;
-  int startIndex = i - FULLALPHABET / T_NUM;
-  if (startIndex < 0) startIndex = 0;
-  bruteForceCrack(startIndex, i, candidate, MAXLENGTH, STARTDIGIT);
+    // --- start chunking from start of the alphabet ---
+    // for(int i = 0; i < FULLALPHABET; i += FULLALPHABET / T_NUM) {
+    //   cout << i << endl;
+    //   int endIndex = i + FULLALPHABET / T_NUM;
+    //   if(endIndex > FULLALPHABET) endIndex = FULLALPHABET;
+    //   bruteForceCrack(i, endIndex, candidate, MAXLENGTH, STARTDIGIT);
+    // }
+
+    auto stop = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
+    cout << duration.count() << endl;
+
+    return duration.count();
 }
 
-// --- start chunking from start of the alphabet ---
-// for(int i = 0; i < FULLALPHABET; i += FULLALPHABET / T_NUM) {
-//   cout << i << endl;
-//   int endIndex = i + FULLALPHABET / T_NUM;
-//   if(endIndex > FULLALPHABET) endIndex = FULLALPHABET;
-//   bruteForceCrack(i, endIndex, candidate, MAXLENGTH, STARTDIGIT);
-// }
+void benchmark() {
+    cout << "----- STARTING BENCHMARK -----" << endl;
+    cout << "Initializing..." << endl;
+    for (int i = 0; i < BENCHMARK_DISCARD_AMOUNT; i++) { // Discard => warmup
+        parallel();
+    }
+    cout << "--- START ---" << endl;
+    long duration = 0;
+    for (int i = 0; i < BENCHMARK_MAX_ITERATIONS; i++) {
+        duration += parallel();
+    }
+    long average = duration / BENCHMARK_MAX_ITERATIONS;
 
-auto stop = chrono::high_resolution_clock::now();
-auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
-cout << duration.count() << endl;
+    cout << "FINISHED! Average:" << endl;
+    cout << average << endl;
+}
+
+int main( int argc, char* argv[]) {
+	benchmark();
+
+    system("pause");
 }

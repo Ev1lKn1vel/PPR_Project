@@ -12,7 +12,7 @@ namespace ParallelPasswordCracker
 
         public string Name => "Parallel.For";
 
-        public string Crack(string hashToFind, int maxLength, HashType hashType = HashType.SHA1)
+        public string Crack(byte[] hashToFind, int maxLength, HashType hashType = HashType.SHA1)
         {
             _foundPassword = null;
 
@@ -32,7 +32,7 @@ namespace ParallelPasswordCracker
             return _foundPassword;
         }
 
-        private void Generate(string s, string hashToFind, PasswordHasher hasher, ParallelLoopState state, int length)
+        private void Generate(string s, byte[] hashToFind, PasswordHasher hasher, ParallelLoopState state, int length)
         {
             if (state.IsStopped || length == 0) // password found or when length has been reached
             {

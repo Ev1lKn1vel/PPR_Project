@@ -15,12 +15,12 @@ namespace ParallelPasswordCracker
         private static readonly int PasswordLengthToCrack = Secret.Length;
         private static readonly HashType HashType = HashType.SHA1;
 
-        private static string hashToFind = string.Empty;
+        private static byte[] hashToFind;
 
         // Benchmark constants
         private const int IterationsPerAlgorithm = 10;
-        private const string DiscardSecret = "ZZZ";
-        private static string discardHashToFind = string.Empty;
+        private const string DiscardSecret = "ZZZZ";
+        private static byte[] discardHashToFind;
 
         static void Main(string[] args)
         {
@@ -39,7 +39,10 @@ namespace ParallelPasswordCracker
             Console.WriteLine("Starting...");
             Stopwatch sW = new Stopwatch();
             sW.Start();
-            var result = new BruteForceParallelFor().Crack(hashToFind, PasswordLengthToCrack);
+
+            // CHANGE HERE
+            var result = new BruteForceSequentialIterative().Crack(hashToFind, PasswordLengthToCrack); 
+
             sW.Stop();
 
             if (result != null)
@@ -63,10 +66,11 @@ namespace ParallelPasswordCracker
 
             var crackingAlgorithms = new List<CrackingAlgorithm>()
             {
+                new BruteForceSequentialRecursive(),
+                new BruteForceSequentialIterative(),
                 new BruteForceParallelCustom(),
                 new BruteForceParallelFor(),
-                new BruteForcePLINQ(),
-                new BruteForceSequential(),
+                new BruteForcePLINQ()
             };
 
             // Benchmark every algorithm

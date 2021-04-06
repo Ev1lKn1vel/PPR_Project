@@ -24,25 +24,33 @@ namespace ParallelPasswordCracker
             _hashAlgorithm.Dispose();
         }
 
-        public string Hash(string source)
+        //public string Hash(string source)
+        //{
+        //    StringBuilder sB = new StringBuilder();
+
+        //    byte[] result = _hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(source));
+
+        //    foreach (byte b in result)
+        //        sB.Append(b.ToString("x2"));
+
+        //    return sB.ToString();
+        //}
+
+        public byte[] Hash(string source)
         {
-            StringBuilder sB = new StringBuilder();
-
-            byte[] result = _hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(source));
-
-            foreach (byte b in result)
-                sB.Append(b.ToString("x2"));
-
-            return sB.ToString();
+            return _hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(source));
         }
 
-        public bool VerifyHash(string input, string hashToCompare)
+        public bool VerifyHash(string input, ReadOnlySpan<byte> hashToCompare)
         {
             var hashOfInput = Hash(input);
 
-            StringComparer comparer = StringComparer.OrdinalIgnoreCase;
+            return ByteArrayCompare(hashOfInput, hashToCompare);
+        }
 
-            return comparer.Compare(hashOfInput, hashToCompare) == 0;
+        static bool ByteArrayCompare(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
+        {
+            return a1.SequenceEqual(a2);
         }
     }
 }

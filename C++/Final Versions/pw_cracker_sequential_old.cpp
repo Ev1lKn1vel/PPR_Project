@@ -24,7 +24,7 @@ unsigned char alphabet[52] = {'a', 'A', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 
 'o', 'O', 'p', 'P', 'q', 'Q', 'r', 'R', 's', 'S', 't', 'T', 'u', 'U', 'v', 'V',
 'w', 'W', 'x', 'X', 'y', 'Y', 'z', 'Z'};
 
-unsigned char hashSecret[20];
+string stringSecret;
 bool found = false;
 
 void printArray(unsigned char* array){
@@ -32,11 +32,15 @@ void printArray(unsigned char* array){
   cout << endl;
 }
 
-bool hashCompare(unsigned char* pword, unsigned char *secret){
+bool hashCompare(unsigned char* pword, string secret){
   unsigned char hashPword[20];
+  char hexPword[41];
   int arrLength = strlen((char*)pword);
   sha1::calc(pword, arrLength, hashPword);
-  return memcmp(hashPword, hashSecret, 20) == 0;
+  sha1::toHexString(hashPword, hexPword);
+  string stringPword = hexPword;
+  if(stringPword == secret) return true;
+  return false;
 }
 
 void bruteForceCrack(int startIndex, unsigned char* candidate, int maxLength, int digit){
@@ -49,7 +53,7 @@ void bruteForceCrack(int startIndex, unsigned char* candidate, int maxLength, in
       bruteForceCrack(0, newCandidate, maxLength, (digit+1));
     }
     if (found) return;
-    if(hashCompare(newCandidate, hashSecret)){
+    if(hashCompare(newCandidate, stringSecret)){
       found = true;
       printArray(newCandidate);
     }
@@ -59,8 +63,11 @@ void bruteForceCrack(int startIndex, unsigned char* candidate, int maxLength, in
 long serial() {
     // set up secret to crack
     unsigned char secret[4] = { 'Z', 'Z', 'Z', 'Z' };
+    unsigned char hashSecret[20];
     char hexSecret[41];
     sha1::calc(secret, 4, hashSecret);
+    sha1::toHexString(hashSecret, hexSecret);
+    stringSecret = hexSecret;
     found = false;
 
     unsigned char candidate[1];
@@ -81,7 +88,7 @@ void benchmark() {
     for (int i = 0; i < BENCHMARK_DISCARD_AMOUNT; i++) { // Discard => warmup
         serial();
     }
-    cout << "--- START ---" << endl;
+    cout << "START" << endl;
     long duration = 0;
     for (int i = 0; i < BENCHMARK_MAX_ITERATIONS; i++) {
         duration += serial();
@@ -94,6 +101,6 @@ void benchmark() {
 
 int main( int argc, char* argv[]) {
     benchmark();
-
-    system("pause");
+	
+	system("pause");
 }

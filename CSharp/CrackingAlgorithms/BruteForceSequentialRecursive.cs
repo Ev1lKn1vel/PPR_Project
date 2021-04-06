@@ -1,17 +1,17 @@
 ﻿namespace ParallelPasswordCracker
 {
-    class BruteForceSequential : CrackingAlgorithm
+    class BruteForceSequentialRecursive : CrackingAlgorithm
     {
         private readonly char[] alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
 
         private bool _found;
         private string _foundPassword;
 
-        public BruteForceSequential() { }
+        public BruteForceSequentialRecursive() { }
 
-        public string Name => "Sequential";
+        public string Name => "Sequential (Recursive)";
 
-        public string Crack(string hashToFind, int maxLength, HashType hashType = HashType.SHA1)
+        public string Crack(byte[] hashToFind, int maxLength, HashType hashType = HashType.SHA1)
         {
             _found = false;
             _foundPassword = null;
@@ -27,7 +27,7 @@
             return _foundPassword;
         }
 
-        private void Generate(string s, string hashToFind, PasswordHasher hasher, int length)
+        private void Generate(string s, byte[] hashToFind, PasswordHasher hasher, int length)
         {
             if (_found || length == 0) // pw found or when length has been reached
             {

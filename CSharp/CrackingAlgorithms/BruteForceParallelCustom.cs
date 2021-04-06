@@ -18,7 +18,7 @@ namespace ParallelPasswordCracker
 
         public string Name => "Custom Parallelization";
 
-        public string Crack(string hashToFind, int maxLength, HashType hashType = HashType.SHA1)
+        public string Crack(byte[] hashToFind, int maxLength, HashType hashType = HashType.SHA1)
         {
             _foundPassword = null;
             _found = false;
@@ -63,7 +63,7 @@ namespace ParallelPasswordCracker
             return _foundPassword;
         }
 
-        private void Generate(string s, string hashToFind, PasswordHasher hasher, int length)
+        private void Generate(string s, byte[] hashToFind, PasswordHasher hasher, int length)
         {
             if (_found || length == 0) // password found or when length has been reached
             {

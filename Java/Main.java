@@ -13,6 +13,10 @@ public class Main {
     public static volatile boolean FOUND = false;
     private static MessageDigest digest;
 
+    // Benchmark
+    private static final int BENCHMARK_ITERATIONS = 10;
+    private static final int DISCARD_ITERATION_AMOUNT = 3;
+
     static {
         try {
             digest = MessageDigest.getInstance(HASHTYPE);
@@ -21,20 +25,41 @@ public class Main {
         }
     }
 
-
     public static void main(String[] args) throws NoSuchAlgorithmException, InterruptedException, ExecutionException {
 
         String password = "ZZZZ";
 
         byte[] hashedPassword = digest.digest(password.getBytes());
         int maxLength = 4;
-//        benchMarkSerial(hashedPassword, maxLength);
-//        benchMarkParallelExecutor(hashedPassword, maxLength);
-        benchMarkParallelStream(hashedPassword, maxLength);
 
+        System.out.println("\n----- STARTING BENCHMARK -----");
+
+        System.out.println("Initializing serial...");
+        for (int i = 0; i < DISCARD_ITERATION_AMOUNT; i++) {  // Discard => warmup
+            benchMarkSerial(hashedPassword, maxLength);
+        }
+        System.out.println("--- START ---");
+        long duration = 0;
+        for (int i = 0; i < BENCHMARK_ITERATIONS; i++) {
+            duration += benchMarkSerial(hashedPassword, maxLength);
+        }
+        long average = duration / BENCHMARK_ITERATIONS;
+        System.out.println("--- Average for benchMarkSerial is " + average + " ms ---\n\n");
+
+        System.out.println("Initializing Parallel...");
+        for (int i = 0; i < DISCARD_ITERATION_AMOUNT; i++) { // Discard => warmup
+            benchMarkParallelStream(hashedPassword, maxLength);
+        }
+        System.out.println("--- START ---");
+        duration = 0;
+        for (int i = 0; i < BENCHMARK_ITERATIONS; i++) {
+            duration += benchMarkParallelStream(hashedPassword, maxLength);
+        }
+        average = duration / BENCHMARK_ITERATIONS;
+        System.out.println("Average for benchMarkParallel is " + average + " ms");
     }
 
-    public static void benchMarkSerial(byte[] hashedPassword, int maxLength) {
+    public static long benchMarkSerial(byte[] hashedPassword, int maxLength) {
         System.out.println("Starting Benchmark Serial\n");
         long start = System.currentTimeMillis();
 
@@ -42,6 +67,8 @@ public class Main {
 
         long end = System.currentTimeMillis();
         System.out.println("total Time: " + (end - start) + "ms and password is " + guessedPW);
+
+        return (end-start);
     }
 
     public static void benchMarkParallelExecutor(byte[] hashedPassword, int maxLength) throws ExecutionException, InterruptedException {
@@ -60,7 +87,7 @@ public class Main {
         executorService.shutdown();
     }
 
-    public static void benchMarkParallelStream(byte[] hashedPassword, int maxLength) {
+    public static long benchMarkParallelStream(byte[] hashedPassword, int maxLength) {
         System.out.println("Starting Benchmark Parallel Stream\n");
 
         long start = System.currentTimeMillis();
@@ -69,6 +96,10 @@ public class Main {
 
         long end = System.currentTimeMillis();
         System.out.println("total Time: " + (end - start) + "ms and password is " + guessedPW);
+
+        FOUND = false;
+
+        return (end-start);
     }
 
     // rekursive method generates StackOverflowError, therefore fixed for loops are used for benchmark
@@ -116,7 +147,7 @@ public class Main {
     }
 
 
-    /* When speaking of the elements which are already being processed, it will wait for the completion of all of them,
+    /*  When speaking of the elements which are already being processed, it will wait for the completion of all of them,
      *  as the Stream API allows concurrent processing of data structures which are not intrinsically thread safe.
      *  It must ensure that all potential concurrent access has been finished before returning from the terminal operation.
      *

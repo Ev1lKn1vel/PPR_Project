@@ -4,6 +4,6 @@
     {
         public string Name { get; }
 
-        public string Crack(string hashToFind, int maxLength, HashType hashType = HashType.SHA1);
+        public string Crack(byte[] hashToFind, int maxLength, HashType hashType = HashType.SHA1);
     }
 }
